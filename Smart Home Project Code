@@ -1,0 +1,112 @@
+#include <Keypad.h>
+#include <Servo.h>
+Servo myservo;
+char key[4][3] = {
+  {'1', '2', '3'},
+  {'4', '5', '6'},
+  {'7', '8', '9'},
+  {'*', '0', '#'},
+};
+byte rows[4] = {A3, A2, A1, A0};
+byte columns[3] = {8, 7, 2};
+char digit1;
+char digit2;
+char digit3;
+char digit4;
+char enter;
+char count = 1;
+Keypad keypad = Keypad( makeKeymap(key), rows, columns, 4, 3);
+int reading; //LDR
+int light; //LDR
+//DHT
+#include "DHT.h"
+#define DHTPIN 9
+#define DHTTYPE DHT11   // DHT 11
+DHT dht(DHTPIN, DHTTYPE);
+void setup() {
+  myservo.attach(5);
+  myservo.write(90);
+  //LDR
+  pinMode(A5, INPUT);
+  pinMode(3, OUTPUT);
+  pinMode(6, OUTPUT);
+  //DHT
+  pinMode(13, OUTPUT);
+  dht.begin();
+  Serial.begin(9600);
+}
+
+void loop() {
+  char key_read = keypad.getKey();
+  if (key_read) {
+    if (count == 1) {
+      digit1 = key_read;
+    }
+    if (count == 2) {
+      digit2 = key_read;
+    }
+    if (count == 3) {
+      digit3 = key_read;
+    }
+    if (count == 4) {
+      digit4 = key_read;
+    }
+    if (count == 5) {
+      enter = key_read;
+    }
+    count++;
+
+  }
+  if (count == 6)
+  {
+    switch (enter)
+    { case '#':
+        if (digit1 == '3' && digit2 == '4' && digit3 == '5' && digit4 == '6') {
+          myservo.write(0);
+          Serial.print("hi");
+
+        }
+        else {
+          Serial.println("wrong answer");
+        }
+        break;
+      default:
+        Serial.println("wrong enter");
+    }
+    digit1 = NULL;
+    digit2 = NULL;
+    digit3 = NULL;
+    digit4 = NULL;
+    enter = NULL;
+    count = 1;
+  }
+  //LDR
+  reading = analogRead(A5);
+  //Serial.print(reading);
+  light = map(reading, 0, 1023, 0, 255);
+  analogWrite(3, light);
+  analogWrite(6, light);
+  //DHT
+  float h = dht.readHumidity();
+  // Read temperature as Celsius (the default)
+  float t = dht.readTemperature();
+  // Check if any reads failed and exit early (to try again).
+  float f = dht.readTemperature(true);
+  if (isnan(h) || isnan(t) || isnan(f) ) {
+    Serial.println(F("Failed to read from DHT sensor!"));
+    return;
+  }
+  if (t > 26 || h > 30) {
+    digitalWrite (13, HIGH);
+  }
+  else
+  {
+    digitalWrite (13, LOW);
+  }
+  // Compute heat index in Fahrenheit (the default)
+  float hif = dht.computeHeatIndex(f, h);
+  // Compute heat index in Celsius (isFahreheit = false)
+  float hic = dht.computeHeatIndex(t, h, false);
+
+
+}
